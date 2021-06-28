@@ -142,19 +142,19 @@ L007B:  LD      B,(HL)			; Carga en B el valor que apunta HL
 L007C:  IN      A,(0BFh)		; Este bucle se repite mientras no se reciba por...
         RRCA					; ...el puerto 00BF un valor con...
         JP      NC,L007C		; ...el bit 0 encendido.
-        OUTI					; Se copia de la dirección apuntada por HL al puerto e incrementa HL
-        INC     B				; OUTI disminuye B, pero esta instrucción la deja como está
+        OUTI					; Se copia de la dirección apuntada por HL al puerto BC e incrementa HL
+        INC     B				; OUTI disminuye B, pero esta instrucción lo deja como está
         JP      Z,L024D			; Si B es cero salta a L024D
-L0088:  IN      A,(0BFh)		; Bucle: Recibe por el puerto 0BFH en A
-        RRCA					; Rota A a la derecha copiando en el Carry
-        JP      NC,L0088		; Si no hay Carry repite el bucle
-        OUTI					; Se copia de la dirección apuntada por HL al puerto e incrementa HL
-        INC     B				; OUTI disminuye B, pero esta instrucción la deja como está
-L0091:  IN      A,(0BFh)
-        RRCA
-        JP      NC,L0091
-        LD      A,40h           ; '@'
-        OUT     (7Fh),A         ; ''
+L0088:  IN      A,(0BFh)		; Este bucle se repite mientras no se reciba por...
+        RRCA					; ...el puerto 00BF un valor con...
+        JP      NC,L0088		; ...el bit 0 encendido.
+        OUTI					; Se copia de la dirección apuntada por HL al puerto BC e incrementa HL
+        INC     B				; OUTI disminuye B, pero esta instrucción lo deja como está
+L0091:  IN      A,(0BFh)		; Este bucle se repite mientras no se reciba por...
+        RRCA					; ...el puerto 00BF un valor con...
+        JP      NC,L0091		; ...el bit 0 encendido.
+        LD      A,40h           ; 
+        OUT     (7Fh),A         ; Se envía el valor 0x40 al puerto 007F
 L009B:  IN      A,(0BFh)
         RRCA
         JP      NC,L009B
