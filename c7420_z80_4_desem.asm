@@ -112,7 +112,7 @@ Vector_Interrupcion:
         LD      A,(87BBh)		; Carga en A la dirección RAM 87BB
         OUT     (7Fh),A         ; Y lo envía al puerto 7F
         AND     A		
-        JP      Z,L027D			; Si A es cero salta a L027D
+        JP      Z,Fin_Interrupcion			; Si A es cero salta a Fin_Interrupcion
         LD      C,7Fh           ; Si no, carga C con 7F
         CP      0C0h			;
         JP      Z,L011C			; Si A es 0C salta a L011C
@@ -138,7 +138,8 @@ Bit6_OFF:
         JP      L024D			; Si ambos bits 6 y 7 están apagados salta a L024D
 
 L0078:  LD      HL,(873Fh)		; Carga en HL el valor de 16 bits apuntado en RAM 873F
-L007B:  LD      B,(HL)			; Carga en B el valor que apunta HL
+Primer_Loop:
+		LD      B,(HL)			; Carga en B el valor que apunta HL
 L007C:  IN      A,(0BFh)		; Este bucle se repite mientras no se reciba por...
         RRCA					; ...el puerto 00BF un valor con...
         JP      NC,L007C		; ...el bit 0 encendido.
@@ -155,49 +156,51 @@ L0091:  IN      A,(0BFh)		; Este bucle se repite mientras no se reciba por...
         JP      NC,L0091		; ...el bit 0 encendido.
         LD      A,40h           ; 
         OUT     (7Fh),A         ; Se envía el valor 0x40 al puerto 007F
-L009B:  IN      A,(0BFh)
-        RRCA
-        JP      NC,L009B
-        OUTI
-        INC     B
-L00A4:  IN      A,(0BFh)
+L009B:  IN      A,(0BFh)		; Este bucle se repite mientras no se reciba por...
+        RRCA					; ...el puerto 00BF un valor con...
+        JP      NC,L009B		; ...el bit 0 encendido.
+        OUTI					; Se copia de la dirección apuntada por HL al puerto BC e incrementa HL
+        INC     B				; OUTI disminuye B, pero esta instrucción lo deja como está
+L00A4:  IN      A,(0BFh)		; Otro bucle de espera del puerto
         RRCA
         JP      NC,L00A4
         LD      A,20h           ; ' '
-        OUT     (7Fh),A         ; ''
-L00AE:  IN      A,(0BFh)
+        OUT     (7Fh),A         ; Se envía al puerto 007F el valor 0x20 (Puede ser Espacio en blanco???)
+Ultimo_Loop:
+		IN      A,(0BFh)		; Otro bucle de espera del puerto
         RRCA
-        JP      NC,L00AE
-        OUTI
-        INC     B
-L00B7:  IN      A,(0BFh)
+        JP      NC,Ultimo_Loop
+        OUTI					; Se copia de la dirección apuntada por HL al puerto BC e incrementa HL
+        INC     B				; OUTI disminuye B, pero esta instrucción lo deja como está
+L00B7:  IN      A,(0BFh)		; Otro bucle de espera del puerto
         RRCA
         JP      NC,L00B7
-        OUTI
-        JP      NZ,L00AE
-        JP      L007B
+        OUTI					; Se copia de la dirección apuntada por HL al puerto BC e incrementa HL
+        JP      NZ,Ultimo_Loop	; Si después de la rotación, A sigue sin ser 0 se repite el último loop
+        JP      Primer_Loop		; Si A es 0 se repite todo el ciclo
 
-L00C5:  LD      B,0EAh
-        LD      HL,(8739h)
-L00CA:  IN      A,(0BFh)
+L00C5:  LD      B,0EAh			; Se carga B con 0xEA, C viene de arriba con el valor 7F
+        LD      HL,(8739h)		; Carga en HL el valor de 16 bits almacenado en RAM 8739
+Loop_Corto:
+		IN      A,(0BFh)		; Otro bucle de espera del puerto
         RRCA
-        JP      NC,L00CA
-        OUTI
-        JP      NZ,L00CA
+        JP      NC,Loop_Corto
+        OUTI					; Se copia de la dirección apuntada por HL al puerto BC (EA7F) e incrementa HL
+        JP      NZ,Loop_Corto	; Mientras A no valga 0 se repite este bucle
         JP      L024D
 
-L00D8:  LD      HL,(873Dh)
-L00DB:  IN      A,(0BFh)
+L00D8:  LD      HL,(873Dh)		; Carga en HL el valor de 16 bits almacenado en RAM 873D
+L00DB:  IN      A,(0BFh)		; Otro bucle de espera del puerto
         RRCA
         JP      NC,L00DB
         LD      A,(874Ah)
-        OUT     (7Fh),A         ; ''
-L00E6:  IN      A,(0BFh)
+        OUT     (7Fh),A         ; Se envía al puerto 007F el valor almacenado en RAM 874A
+L00E6:  IN      A,(0BFh)		; Otro bucle de espera del puerto
         RRCA
         JP      NC,L00E6
         LD      A,(8749h)
-        OUT     (7Fh),A         ; ''
-        LD      D,A
+        OUT     (7Fh),A         ; Se envía al puerto 007F el valor almacenado en RAM 8749
+        LD      D,A				; Se copia dicho valor de RAM en D (para usarlo como contador)
 L00F2:  LD      B,50h           ; 'P'
 L00F4:  IN      A,(0BFh)
         RRCA
@@ -378,7 +381,7 @@ L023F:  IN      A,(0BFh)
         ; --- START PROC L024D ---
 L024D:  LD      A,(87BBh)
         BIT     0,A
-        JP      Z,L027D
+        JP      Z,Fin_Interrupcion
         LD      HL,87B1h
         LD      B,0Ah
 L025A:  IN      A,(0BFh)
@@ -397,10 +400,11 @@ L026D:  IN      A,(0BFh)
         JP      NZ,L026B
         LD      HL,87B0h
         RES     7,(HL)
-        ; --- START PROC L027D ---
-L027D:  IN      A,(0BFh)
+        ; --- START PROC Fin_Interrupcion ---
+Fin_Interrupcion:
+		IN      A,(0BFh)
         RRCA
-        JP      NC,L027D
+        JP      NC,Fin_Interrupcion
         XOR     A
         OUT     (7Fh),A         ; ''
         LD      HL,87BDh
