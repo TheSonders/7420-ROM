@@ -1,3 +1,11 @@
+;;DIRECCIONES DE RAM PENDIENTES DE DETERMINAR Y QUE SE ENVíAN POR EL PUERTO 007F
+;;0x8739 = ??
+;;0x874A = ??
+;;0x8749 = ??
+;;0x8746 = ??
+;;0x874E = ??
+;;0x874F = ??
+;;0x874D = ??
 ;;255h = rutina del teclado
 ;;0x21E0 = la de carga de cabecera
 ;;0x2237 = carga del programa
@@ -49,7 +57,7 @@
 
         ; Entry Point
         ; --- START PROC L0000 ---
-L0000:  JP      L3117
+L0000:  JP      Inicializacion
 
 L0003:  DB      37h             ; '7'
         DB      15h
@@ -195,94 +203,96 @@ L00DB:  IN      A,(0BFh)		; Otro bucle de espera del puerto
         JP      NC,L00DB
         LD      A,(874Ah)
         OUT     (7Fh),A         ; Se envía al puerto 007F el valor almacenado en RAM 874A
-L00E6:  IN      A,(0BFh)		; Otro bucle de espera del puerto
+L00E6:  IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
         JP      NC,L00E6
         LD      A,(8749h)
-        OUT     (7Fh),A         ; Se envía al puerto 007F el valor almacenado en RAM 8749
+        OUT     (7Fh),A         ; Envía al puerto 007F el valor almacenado en RAM 8749
         LD      D,A				; Se copia dicho valor de RAM en D (para usarlo como contador)
-L00F2:  LD      B,50h           ; 'P'
-L00F4:  IN      A,(0BFh)
+Loop_D_veces:
+		LD      B,50h           ; Carga B con el valor 0x50
+L00F4:  IN      A,(0BFh)		; Otro bucle de espera del puerto
         RRCA
         JP      NC,L00F4
-        OUTI
-        JP      NZ,L00F4
-        DEC     D
-        JP      NZ,L00F2
-L0103:  IN      A,(0BFh)
+        OUTI					; Copia de la dirección apuntada por HL al puerto BC (507F) e incrementa HL
+        JP      NZ,L00F4		; Este bucle se repite mientras B no valga 0
+        DEC     D				; Se disminuye D...
+        JP      NZ,Loop_D_veces	; ... y mientras D no valga 0 se repite todo el bucle
+L0103:  IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
-        JP      NC,L0103
-        LD      A,(8746h)
-        OUT     (7Fh),A         ; ''
-L010E:  IN      A,(0BFh)
+        JP      NC,L0103		
+        LD      A,(8746h)		; Envía al puerto 007F el valor almacenado en RAM 8746
+        OUT     (7Fh),A         
+L010E:  IN      A,(0BFh)		; Otro bucle de espera del puerto
         RRCA
         JP      NC,L010E
-        LD      A,(8748h)
+        LD      A,(8748h)		; Envía al puerto 007F el valor almacenado en RAM 8748
         OUT     (7Fh),A         ; ''
         JP      L024D
 
-L011C:  LD      HL,(8750h)
-        JP      L012B
+L011C:  LD      HL,(8750h)		; Carga HL con el valor de 16 bits almacenado en RAM 8750...
+        JP      Loop_Largo			; ...y se salta las siguientes 5 instrucciones
 
-L0122:  IN      A,(0BFh)
+L0122:  IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
         JP      NC,L0122
-        INC     HL
-        OUTI
-L012B:  IN      A,(0BFh)
+        INC     HL				; Incrementa HL
+        OUTI					; Copia de la dirección apuntada por HL al puerto BC e incrementa HL
+Loop_Largo:
+		IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
-        JP      NC,L012B
-        LD      A,(HL)
-        OUT     (C),A
-        BIT     7,A
-        JP      Z,L0122
-        AND     60h             ; '`'
-        JP      NZ,L0122
-        LD      A,18h
+        JP      NC,Loop_Largo
+        LD      A,(HL)			; Carga en A el contenido de RAM apuntado por HL
+        OUT     (C),A			; Lo manda al puerto 7F
+        BIT     7,A				; Si el bit 7 de A es cero
+        JP      Z,L0122			; repite el bucle anterior
+        AND     60h             ; En caso contrario comprueba los bits 6 y 5
+        JP      NZ,L0122		; Si está encendido alguno de ellos, repite también el bucle anterior
+        LD      A,18h			; En caso contrario comprueba los bits 4 y 3
         AND     (HL)
-        JP      Z,L0122
+        JP      Z,L0122			; Si ninguno está encendido, repite también el bucle anterior
         BIT     3,(HL)
-        JP      Z,L024D
+        JP      Z,L024D			; Continúa comprobando por separado el bit 3 y salta a L024D si es cero
         BIT     4,(HL)
-        JP      Z,L0162
-L014E:  IN      A,(0BFh)
+        JP      Z,L0162			; En caso contrario, salta a L0162 si el bit 4 es cero
+L014E:  IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
         JP      NC,L014E
-        INC     HL
-        OUTI
-L0157:  IN      A,(0BFh)
+        INC     HL				; Incrementa HL
+        OUTI					; Copia de la dirección apuntada por HL al puerto BC e incrementa HL
+L0157:  IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
         JP      NC,L0157
-        OUTI
-        JP      L012B
+        OUTI					; Copia de la dirección apuntada por HL al puerto BC e incrementa HL
+        JP      Loop_Largo		; Repite el bucle
 
-L0162:  BIT     0,(HL)
-        JP      NZ,L0186
+L0162:  BIT     0,(HL)			; Si el bit 4 es cero, continúa por aquí
+        JP      NZ,L0186		; Comprueba el bit 0 y salta a L0186 si está activado
         BIT     2,(HL)
-        JP      NZ,L0195
-L016C:  IN      A,(0BFh)
+        JP      NZ,L0195		; En caso contrario, salta a L0195 si el bit 2 está activado
+L016C:  IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
         JP      NC,L016C
-        LD      A,(874Eh)
-        OUT     (C),A
-L0177:  IN      A,(0BFh)
+        LD      A,(874Eh)		; Carga en A el valor de la RAM 874E
+        OUT     (C),A			; Lo envía al puerto 7F
+L0177:  IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
         JP      NC,L0177
-        LD      A,(874Fh)
+        LD      A,(874Fh)		; Envía al puerto 7F el contenido de RAM 874F
         OUT     (C),A
-        INC     HL
-        JP      L012B
+        INC     HL				; Incrementa HL
+		JP      Loop_Largo		; Repite todo el bucle
 
-L0186:  IN      A,(0BFh)
-        RRCA
+L0186:  IN      A,(0BFh)		; Si el bit 0 está activado, continúa por aquí
+        RRCA					; Otro bucle de espera del puerto 0BFh
         JP      NC,L0186
-        LD      A,(874Dh)
+        LD      A,(874Dh)		; Envía al puerto 7F el contenido de RAM 874D
         OUT     (C),A
-        INC     HL
-        JP      L012B
+        INC     HL				; Incrementa HL
+		JP      Loop_Largo		; Repite todo el bucle
 
-L0195:  IN      A,(0BFh)
-        RRCA
+L0195:  IN      A,(0BFh)		; Si el bit 2 está activado, continúa por aquí
+        RRCA					; Otro bucle de espera del puerto 0BFh
         JP      NC,L0195
         LD      A,(8746h)
         OUT     (7Fh),A         ; ''
@@ -292,7 +302,7 @@ L01A0:  IN      A,(0BFh)
         LD      A,(8748h)
         OUT     (7Fh),A         ; ''
         INC     HL
-        JP      L012B
+        JP      Loop_Largo
 
 L01AF:  IN      A,(0BFh)
         RRCA
@@ -9623,32 +9633,33 @@ L3098:  DB      "  Bytes free"
         DB      0C1h
         DB      88h
 
-        ; --- START PROC L3117 ---
-L3117:  DI
-        LD      SP,0BFFEh
+        ; --- START PROC Inicializacion ---
+Inicializacion:
+		DI						; Deshabilita interrupciones
+        LD      SP,0BFFEh		; Pone el puntero de pila en BFFE
         XOR     A
-        OUT     (7Fh),A         ; ''
-        OUT     (0BFh),A
-        LD      (87BBh),A
+        OUT     (7Fh),A         ; Envía el valor 0 al puerto 7F
+        OUT     (0BFh),A		; y al puerto BF
+        LD      (87BBh),A		; Pone a 0 la posición de RAM 87BB
         LD      A,0C9h
-        LD      (87DDh),A
-        IM      1
-        EI
+        LD      (87DDh),A		; Pone el valor C9 en la posición RAM 87DD
+        IM      1				; Pone el modo 1 de interrupción (todas las interrupciones saltan a 0x0038)
+        EI						; Habilita las interrupciones
         LD      HL,0001h
-        LD      (87C2h),HL
+        LD      (87C2h),HL		; Pone en RAM 87C2 el valor de 16 bits 0001
         CALL    L1AE3
-        LD      HL,0000h
-        LD      DE,87CFh
-        LD      BC,0005h
+        LD      HL,0000h		; Este bucle busca en la ROM (empieza por 0)
+        LD      DE,87CFh		; el valor que se encuentra en RAM 87CF
+        LD      BC,0005h		; durante un máximo de 5 posiciones de ROM
 L313D:  LD      A,(DE)
         CPI
         INC     DE
-        JP      NZ,L314A
-        JP      PE,L313D
-        JP      L3090
+        JP      NZ,L314A		; Si no se encuentra el valor, salta a L314A
+        JP      PE,L313D		; Repite la búsqueda 5 veces
+        JP      L3090			; Salta a L3090
 
-L314A:  LD      HL,0000h
-        LD      DE,87CFh
+L314A:  LD      HL,0000h		; Copia los primeros 5 bytes de ROM...
+        LD      DE,87CFh		; ...en la memoria RAM 87CF
         LD      BC,0005h
         LDIR
         JP      L2FF7
