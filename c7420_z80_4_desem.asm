@@ -6,6 +6,7 @@
 ;;0x874E = ??
 ;;0x874F = ??
 ;;0x874D = ??
+;;0x8745 = ??
 ;;255h = rutina del teclado
 ;;0x21E0 = la de carga de cabecera
 ;;0x2237 = carga del programa
@@ -142,7 +143,7 @@ Vector_Interrupcion:
 
 Bit6_OFF:
 		BIT     7,A
-        JP      NZ,L01AF		; Si el bit 7 está encendido y 6 está apagado salta a L01AF
+        JP      NZ,Bit7ON_Bit6OFF; Si el bit 7 está encendido y 6 está apagado salta a Bit7ON_Bit6OFF
         JP      L024D			; Si ambos bits 6 y 7 están apagados salta a L024D
 
 L0078:  LD      HL,(873Fh)		; Carga en HL el valor de 16 bits apuntado en RAM 873F
@@ -295,46 +296,48 @@ L0195:  IN      A,(0BFh)		; Si el bit 2 está activado, continúa por aquí
         RRCA					; Otro bucle de espera del puerto 0BFh
         JP      NC,L0195
         LD      A,(8746h)
-        OUT     (7Fh),A         ; ''
-L01A0:  IN      A,(0BFh)
+        OUT     (7Fh),A         ; Envía al puerto 7F el contenido de RAM 8746
+L01A0:  IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
         JP      NC,L01A0
-        LD      A,(8748h)
-        OUT     (7Fh),A         ; ''
-        INC     HL
-        JP      Loop_Largo
+        LD      A,(8748h)		; Envía al puerto 7F el contenido de RAM 8748
+        OUT     (7Fh),A         
+        INC     HL				; Incrementa HL
+        JP      Loop_Largo		; Repite todo el bucle
 
-L01AF:  IN      A,(0BFh)
+Bit7ON_Bit6OFF:
+		IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
-        JP      NC,L01AF
-        LD      A,(8745h)
-        OUT     (7Fh),A         ; ''
-        LD      D,A
+        JP      NC,Bit7ON_Bit6OFF
+        LD      A,(8745h)		; Copia en A el contenido de RAM 8745
+        OUT     (7Fh),A         ; Envía al puerto 7F dicho contenido
+        LD      D,A				; Y lo copia en D
         AND     D
-        JP      Z,L01C5
-        LD      HL,(8741h)
-        CALL    L01DE
-L01C5:  IN      A,(0BFh)
+        JP      Z,L01C5			; 
+        LD      HL,(8741h)		; Si no es 0, copia 10xD bytes desde RAM 8741 al puerto 7F
+        CALL    Out_10xD_veces
+L01C5:  IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
         JP      NC,L01C5
-        LD      A,(8747h)
-        OUT     (7Fh),A         ; ''
+        LD      A,(8747h)		; Si el contenido de 8745 contenido es 0...
+        OUT     (7Fh),A         ; envía el contenido de RAM 8747 al puerto 7F
         LD      D,A
         AND     D
-        JP      Z,L024D
-        LD      HL,(8743h)
-        CALL    L01DE
-        JP      L024D
+        JP      Z,L024D			; Si el contenido de RAM 8747 es 0, salta a L024D
+        LD      HL,(8743h)		; En caso contrario, copia 10xD bytes desde RAM 8743 al puerto 7F
+        CALL    Out_10xD_veces
+        JP      L024D			; y salta a L204D
 
-        ; --- START PROC L01DE ---
-L01DE:  LD      B,0Ah
-L01E0:  IN      A,(0BFh)
+        ; --- START PROC Out_10xD_veces ---
+Out_10xD_veces:
+		LD      B,0Ah			; Carga B como contador con valor 10
+L01E0:  IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
         JP      NC,L01E0
-        OUTI
-        JP      NZ,L01E0
-        DEC     D
-        JR      NZ,L01DE
+        OUTI					; Copia de la dirección apuntada por HL al puerto BC (7F) e incrementa HL
+        JP      NZ,L01E0		; Si B es cero, repite el bucle
+        DEC     D				; Disminuye D
+        JR      NZ,Out_10xD_veces; Si D es no cero, repite toda la subrutina
         RET
 
         ; --- START PROC L01EF ---
