@@ -1,4 +1,5 @@
 ;;DIRECCIONES DE RAM PENDIENTES DE DETERMINAR Y QUE SE ENVíAN POR EL PUERTO 007F
+;;0x87BB = ?? Esta dirección es importante, es la primera que se consulta en cada interrupción!
 ;;0x8739 = ??
 ;;0x874A = ??
 ;;0x8749 = ??
