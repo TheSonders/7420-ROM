@@ -8,6 +8,11 @@
 ;;0x874F = ??
 ;;0x874D = ??
 ;;0x8745 = ??
+;;
+;;PUERTOS USADOS
+;; 0xBF  = entrada, usado como espera?
+;; 0x7F  = puerto de salida ¿?
+;;
 ;;255h = rutina del teclado
 ;;0x21E0 = la de carga de cabecera
 ;;0x2237 = carga del programa
@@ -393,41 +398,42 @@ L023F:  IN      A,(0BFh)
         JP      L0229
 
         ; --- START PROC L024D ---
-L024D:  LD      A,(87BBh)
-        BIT     0,A
+L024D:  LD      A,(87BBh)		; Si el bit 0 de la dirección RAM está apagado
+        BIT     0,A				; Salta a Fin_Interrupcion
         JP      Z,Fin_Interrupcion
-        LD      HL,87B1h
-        LD      B,0Ah
-L025A:  IN      A,(0BFh)
+        LD      HL,87B1h		; En caso contrario carga en HL el valor 16 bits de la RAM 87B1
+        LD      B,0Ah			; Carga B con el valor 10d
+L025A:  IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
         JP      NC,L025A
-        LD      A,(87B0h)
-        OUT     (7Fh),A         ; ''
-L0265:  IN      A,(0BFh)
+        LD      A,(87B0h)		; Envía por el puerto 7F el contenido de la RAM 87B0
+        OUT     (7Fh),A         
+L0265:  IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
         JP      NC,L0265
-L026B:  OUT     (7Fh),A         ; ''
-L026D:  IN      A,(0BFh)
+IN_10_veces:
+		OUT     (7Fh),A         ; Envía al puerto 7Fh el byte recibido por el puerto BFh después de rotarlo
+L026D:  IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
         JP      NC,L026D
-        INI
-        JP      NZ,L026B
-        LD      HL,87B0h
-        RES     7,(HL)
+        INI						; Lee del puerto C y escribe en la dirección HL usando B como contador
+        JP      NZ,IN_10_veces	; Repite este bucle 10 veces	
+        LD      HL,87B0h		; Lee de la RAM 87B0 un valor de 16 bits y lo escribe en HL
+        RES     7,(HL)			; Apaga el bit 7 en la posición de RAM apuntada por HL
         ; --- START PROC Fin_Interrupcion ---
 Fin_Interrupcion:
-		IN      A,(0BFh)
+		IN      A,(0BFh)		; Otro bucle de espera del puerto 0BFh
         RRCA
         JP      NC,Fin_Interrupcion
         XOR     A
-        OUT     (7Fh),A         ; ''
-        LD      HL,87BDh
-        INC     (HL)
-        EXX
+        OUT     (7Fh),A         ; Envía un 0 al puerto 7Fh
+        LD      HL,87BDh		; Carga un valor de 16 bits de la RAM 87BD en HL
+        INC     (HL)			; Incrementa dicho valor
+        EXX						; Intercambio de los registros alternativos
         EX      AF,AF'
-        EI
-        CALL    87DDh
-        RET
+        EI						; Habilita las interrupciones
+        CALL    87DDh			; Salta a una rutina en la RAM 87DD
+        RET						; Vuelve de la interrupción
 
         ; --- START PROC L0291 ---
 L0291:  PUSH    AF
